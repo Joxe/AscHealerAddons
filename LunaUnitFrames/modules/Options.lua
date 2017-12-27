@@ -2,12 +2,6 @@ local L = LunaUF.L
 local defaultFont = LunaUF.defaultFont
 local OptionsPageNames = {L["General"],L["Player"],L["Pet"],L["Pet Target"],L["Target"],L["ToT"],L["ToToT"],L["Party"],L["Party Target"],L["Party Pet"],L["Raid"],L["Clickcasting"],L["Colors"],L["Profiles"],L["Config Mode"]}
 local shownFrame = 1
-local WithTags = {
-	["healthBar"] = true,
-	["powerBar"] = true,
-	["druidBar"] = true,
-	["emptyBar"] = true,
-}
 
 local TagsDescs = {}
 
@@ -16,7 +10,7 @@ TagsDescs[L["INFO TAGS"]] = {
 	["cnumtargeting"] = L["Colored version of numtargeting"],
 	["br"] = L["Adds a line break"],
 	["name"] = L["Returns plain name of the unit"],
-	["shortname"] = L["Returns the first 3 letters of the name"],
+	["shortname:x"] = L["Returns the first x letters of the name (1-12)"],
 	["abbrev:name"] = L["Returns shortened names (Marshall Williams = M. Williams)"],
 	["guild"] = L["Guildname"],
 	["level"] = L["Current level, returns ?? for bosses and players too high"],
@@ -299,105 +293,155 @@ local function CreateTagEditFrame(parent, tagconfig)
 	frame:SetWidth(10)
 	frame.parent = parent
 	local anchor = frame
-	local count = 1
+	local count = 0
 	for barname,tags in pairs(tagconfig) do
-		if barname ~= "totemBar" then
-			frame[barname] = {}
+		frame[barname] = {}
 
-			frame[barname].size = CreateFrame("Slider", "Size"..parent.id..barname, frame, "OptionsSliderTemplate")
-			frame[barname].size:SetMinMaxValues(5,24)
-			frame[barname].size:SetValueStep(1)
-			frame[barname].size.config = tags
-			frame[barname].size:SetScript("OnValueChanged", function()
-				this.config.size = math.floor(this:GetValue())
-				getglobal(this:GetName().."Text"):SetText(L["Size"]..": "..this.config.size)
+		frame[barname].size = CreateFrame("Slider", "Size"..parent.id..barname, frame, "OptionsSliderTemplate")
+		frame[barname].size:SetMinMaxValues(5,24)
+		frame[barname].size:SetValueStep(1)
+		frame[barname].size.config = tags
+		frame[barname].size:SetScript("OnValueChanged", function()
+			this.config.size = math.floor(this:GetValue())
+			getglobal(this:GetName().."Text"):SetText(L["Size"]..": "..this.config.size)
+			for _,v in pairs(LunaUF.Units.frameList) do
+				if this:GetParent().parent.id == v.unitGroup then
+					LunaUF.Units.FullUpdate(v)
+				end
+			end
+		end)
+		frame[barname].size:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -70)
+		frame[barname].size:SetWidth(200)
+
+		frame[barname].Desc = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		frame[barname].Desc:SetPoint("BOTTOMLEFT", frame[barname].size, "TOPLEFT", 0, 20)
+		frame[barname].Desc:SetText(L[barname])
+		frame[barname].Desc:SetTextColor(1,1,0)
+
+		anchor = frame[barname].size
+		if barname ~= "castBar" then
+			frame[barname].left = CreateFrame("Editbox", "LeftTag"..parent.id..barname, frame, "InputBoxTemplate")
+			frame[barname].left:SetHeight(20)
+			frame[barname].left:SetWidth(200)
+			frame[barname].left:SetAutoFocus(nil)
+			frame[barname].left:SetPoint("TOP", frame[barname].size, "BOTTOM", 0, -30)
+			frame[barname].left.config = tags
+			frame[barname].left:SetScript("OnTextChanged" , function()
+				this.config.left = this:GetText()
+			end)
+			frame[barname].left:SetScript("OnEnterPressed", function()
+				this:ClearFocus()
+			end)
+
+			frame[barname].LeftDesc = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+			frame[barname].LeftDesc:SetPoint("BOTTOM", frame[barname].left, "TOP", 0, 0)
+			frame[barname].LeftDesc:SetText(L["LEFT"])
+			
+			frame[barname].leftsize = CreateFrame("Slider", "LeftSize"..parent.id..barname.."Slider", frame, "OptionsSliderTemplate")
+			frame[barname].leftsize:SetMinMaxValues(1,100)
+			frame[barname].leftsize:SetValueStep(1)
+			frame[barname].leftsize.config = tags
+			frame[barname].leftsize:SetScript("OnValueChanged", function()
+				this.config.leftsize = math.floor(this:GetValue())
+				getglobal(this:GetName().."Text"):SetText(L["Limit"]..": "..this.config.leftsize.."%")
 				for _,v in pairs(LunaUF.Units.frameList) do
 					if this:GetParent().parent.id == v.unitGroup then
 						LunaUF.Units.FullUpdate(v)
 					end
 				end
 			end)
-			frame[barname].size:SetPoint("TOPLEFT", anchor, "TOPLEFT", 0, -70)
-			frame[barname].size:SetWidth(200)
+			frame[barname].leftsize:SetPoint("LEFT", frame[barname].left, "RIGHT", 20, 0)
+			frame[barname].leftsize:SetWidth(200)
 
-			frame[barname].Desc = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-			frame[barname].Desc:SetPoint("BOTTOMLEFT", frame[barname].size, "TOPLEFT", 0, 20)
-			frame[barname].Desc:SetText(L[barname])
+			frame[barname].right = CreateFrame("Editbox", "RightTag"..parent.id..barname, frame, "InputBoxTemplate")
+			frame[barname].right:SetHeight(20)
+			frame[barname].right:SetWidth(200)
+			frame[barname].right:SetAutoFocus(nil)
+			frame[barname].right:SetPoint("TOP", frame[barname].left, "BOTTOM", 0, -30)
+			frame[barname].right.config = tags
+			frame[barname].right:SetScript("OnTextChanged" , function()
+				this.config.right = this:GetText()
+			end)
+			frame[barname].right:SetScript("OnEnterPressed", function()
+				this:ClearFocus()
+			end)
 
-			anchor = frame[barname].size
-			if WithTags[barname] then
-				frame[barname].middle = CreateFrame("Editbox", "MiddleTag"..parent.id..barname, frame, "InputBoxTemplate")
-				frame[barname].middle:SetHeight(20)
-				frame[barname].middle:SetWidth(200)
-				frame[barname].middle:SetAutoFocus(nil)
-				frame[barname].middle:SetPoint("TOPLEFT", frame[barname].size, "TOPRIGHT", 20, 0)
-				frame[barname].middle.config = tags
-				frame[barname].middle:SetScript("OnTextChanged" , function()
-					this.config.center = this:GetText()
-				end)
-				frame[barname].middle:SetScript("OnEnterPressed", function()
-					this:ClearFocus()
-				end)
+			frame[barname].RightDesc = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+			frame[barname].RightDesc:SetPoint("BOTTOM", frame[barname].right, "TOP", 0, 0)
+			frame[barname].RightDesc:SetText(L["RIGHT"])
 
-				frame[barname].MiddleDesc = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-				frame[barname].MiddleDesc:SetPoint("BOTTOM", frame[barname].middle, "TOP", 0, 0)
-				frame[barname].MiddleDesc:SetText(L["Middle"])
+			frame[barname].rightsize = CreateFrame("Slider", "RightSize"..parent.id..barname.."Slider", frame, "OptionsSliderTemplate")
+			frame[barname].rightsize:SetMinMaxValues(1,100)
+			frame[barname].rightsize:SetValueStep(1)
+			frame[barname].rightsize.config = tags
+			frame[barname].rightsize:SetScript("OnValueChanged", function()
+				this.config.rightsize = math.floor(this:GetValue())
+				getglobal(this:GetName().."Text"):SetText(L["Limit"]..": "..this.config.rightsize.."%")
+				for _,v in pairs(LunaUF.Units.frameList) do
+					if this:GetParent().parent.id == v.unitGroup then
+						LunaUF.Units.FullUpdate(v)
+					end
+				end
+			end)
+			frame[barname].rightsize:SetPoint("LEFT", frame[barname].right, "RIGHT", 20, 0)
+			frame[barname].rightsize:SetWidth(200)
+			
+			frame[barname].middle = CreateFrame("Editbox", "MiddleTag"..parent.id..barname, frame, "InputBoxTemplate")
+			frame[barname].middle:SetHeight(20)
+			frame[barname].middle:SetWidth(200)
+			frame[barname].middle:SetAutoFocus(nil)
+			frame[barname].middle:SetPoint("TOP", frame[barname].right, "BOTTOM", 0, -30)
+			frame[barname].middle.config = tags
+			frame[barname].middle:SetScript("OnTextChanged" , function()
+				this.config.center = this:GetText()
+			end)
+			frame[barname].middle:SetScript("OnEnterPressed", function()
+				this:ClearFocus()
+			end)
 
-				frame[barname].left = CreateFrame("Editbox", "LeftTag"..parent.id..barname, frame, "InputBoxTemplate")
-				frame[barname].left:SetHeight(20)
-				frame[barname].left:SetWidth(200)
-				frame[barname].left:SetAutoFocus(nil)
-				frame[barname].left:SetPoint("TOP", frame[barname].size, "BOTTOM", 0, -30)
-				frame[barname].left.config = tags
-				frame[barname].left:SetScript("OnTextChanged" , function()
-					this.config.left = this:GetText()
-				end)
-				frame[barname].left:SetScript("OnEnterPressed", function()
-					this:ClearFocus()
-				end)
-
-				frame[barname].LeftDesc = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-				frame[barname].LeftDesc:SetPoint("BOTTOM", frame[barname].left, "TOP", 0, 0)
-				frame[barname].LeftDesc:SetText(L["LEFT"])
-
-				frame[barname].right = CreateFrame("Editbox", "RightTag"..parent.id..barname, frame, "InputBoxTemplate")
-				frame[barname].right:SetHeight(20)
-				frame[barname].right:SetWidth(200)
-				frame[barname].right:SetAutoFocus(nil)
-				frame[barname].right:SetPoint("TOPLEFT", frame[barname].left, "TOPRIGHT", 20, 0)
-				frame[barname].right.config = tags
-				frame[barname].right:SetScript("OnTextChanged" , function()
-					this.config.right = this:GetText()
-				end)
-				frame[barname].right:SetScript("OnEnterPressed", function()
-					this:ClearFocus()
-				end)
-
-				frame[barname].RightDesc = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-				frame[barname].RightDesc:SetPoint("BOTTOM", frame[barname].right, "TOP", 0, 0)
-				frame[barname].RightDesc:SetText(L["RIGHT"])
-
-				anchor = frame[barname].left
-			end
-			count = count+1
+			frame[barname].MiddleDesc = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+			frame[barname].MiddleDesc:SetPoint("BOTTOM", frame[barname].middle, "TOP", 0, 0)
+			frame[barname].MiddleDesc:SetText(L["Middle"])
+			
+			frame[barname].middlesize = CreateFrame("Slider", "MiddleSize"..parent.id..barname.."Slider", frame, "OptionsSliderTemplate")
+			frame[barname].middlesize:SetMinMaxValues(1,100)
+			frame[barname].middlesize:SetValueStep(1)
+			frame[barname].middlesize.config = tags
+			frame[barname].middlesize:SetScript("OnValueChanged", function()
+				this.config.middlesize = math.floor(this:GetValue())
+				getglobal(this:GetName().."Text"):SetText(L["Limit"]..": "..this.config.middlesize.."%")
+				for _,v in pairs(LunaUF.Units.frameList) do
+					if this:GetParent().parent.id == v.unitGroup then
+						LunaUF.Units.FullUpdate(v)
+					end
+				end
+			end)
+			frame[barname].middlesize:SetPoint("LEFT", frame[barname].middle, "RIGHT", 20, 0)
+			frame[barname].middlesize:SetWidth(200)
+			
+			anchor = frame[barname].middle
 		end
+		count = count+1
 	end
 	frame.load = function (frame, config)
 		frame.config = config
 		for barname,tags in pairs(config) do
 			frame[barname].size.config = tags
 			frame[barname].size:SetValue(tags.size)
-			if WithTags[barname] then
+			if barname ~= "castBar" then
 				frame[barname].middle.config = tags
 				frame[barname].middle:SetText(tags.center or "")
+				frame[barname].middlesize:SetValue(tags.middlesize)
 				frame[barname].left.config = tags
 				frame[barname].left:SetText(tags.left or "")
+				frame[barname].leftsize:SetValue(tags.leftsize)
 				frame[barname].right.config = tags
 				frame[barname].right:SetText(tags.right or "")
+				frame[barname].rightsize:SetValue(tags.rightsize)
 			end
 		end
 	end
-	frame:SetHeight(80*count)
+	frame:SetHeight(182*count)
 	return frame
 end
 
@@ -678,17 +722,20 @@ function LunaUF:LoadOptions()
 		SetDropDownValue(LunaOptionsFrame.pages[i].healthreact,LunaUF.db.profile.units[unit].healthBar.reactionType)
 		LunaOptionsFrame.pages[i].invertHealth:SetChecked(LunaUF.db.profile.units[unit].healthBar.invert)
 		LunaOptionsFrame.pages[i].vertHealth:SetChecked(LunaUF.db.profile.units[unit].healthBar.vertical)
+		LunaOptionsFrame.pages[i].reverseHealth:SetChecked(LunaUF.db.profile.units[unit].healthBar.reverse)
 		LunaOptionsFrame.pages[i].enablePower:SetChecked(LunaUF.db.profile.units[unit].powerBar.enabled)
 		LunaOptionsFrame.pages[i].hidePower:SetChecked(LunaUF.db.profile.units[unit].powerBar.hide)
 		LunaOptionsFrame.pages[i].powersizeslider:SetValue(LunaUF.db.profile.units[unit].powerBar.size)
 		LunaOptionsFrame.pages[i].invertPower:SetChecked(LunaUF.db.profile.units[unit].powerBar.invert)
 		LunaOptionsFrame.pages[i].vertPower:SetChecked(LunaUF.db.profile.units[unit].powerBar.vertical)
+		LunaOptionsFrame.pages[i].reversePower:SetChecked(LunaUF.db.profile.units[unit].powerBar.reverse)
 		LunaOptionsFrame.pages[i].enableempty:SetChecked(LunaUF.db.profile.units[unit].emptyBar.enabled)
 		LunaOptionsFrame.pages[i].emptysizeslider:SetValue(LunaUF.db.profile.units[unit].emptyBar.size)
 		LunaOptionsFrame.pages[i].enablecast:SetChecked(LunaUF.db.profile.units[unit].castBar.enabled)
 		LunaOptionsFrame.pages[i].casthide:SetChecked(LunaUF.db.profile.units[unit].castBar.hide)
 		LunaOptionsFrame.pages[i].casticon:SetChecked(LunaUF.db.profile.units[unit].castBar.icon)
 		LunaOptionsFrame.pages[i].castvertical:SetChecked(LunaUF.db.profile.units[unit].castBar.vertical)
+		LunaOptionsFrame.pages[i].reverseCast:SetChecked(LunaUF.db.profile.units[unit].castBar.reverse)
 		LunaOptionsFrame.pages[i].castsizeslider:SetValue(LunaUF.db.profile.units[unit].castBar.size)
 		if LunaOptionsFrame.pages[i].enableheal then
 			LunaOptionsFrame.pages[i].enableheal:SetChecked(LunaUF.db.profile.units[unit].incheal.enabled)
@@ -702,6 +749,7 @@ function LunaUF:LoadOptions()
 		LunaOptionsFrame.pages[i].debuffsizeslider:SetValue(LunaUF.db.profile.units[unit].auras.debuffsize)
 		LunaOptionsFrame.pages[i].bigdebuffsizeslider:SetValue(LunaUF.db.profile.units[unit].auras.enlargeddebuffsize)
 		SetDropDownValue(LunaOptionsFrame.pages[i].debuffposition, LunaUF.db.profile.units[unit].auras.debuffpos)
+		LunaOptionsFrame.pages[i].aurapaddingslider:SetValue(LunaUF.db.profile.units[unit].auras.padding)
 		LunaOptionsFrame.pages[i].enablebordercolor:SetChecked(LunaUF.db.profile.units[unit].auras.bordercolor)
 		SetDropDownValue(LunaOptionsFrame.pages[i].buffposition,LunaUF.db.profile.units[unit].auras.position)
 		RefreshAuraWindow(LunaOptionsFrame.pages[i].EmphasizeBuffsBG.controls, LunaOptionsFrame.pages[i].EmphasizeBuffsBG.config, LunaOptionsFrame.pages[i].EmphasizeBuffsBG.slot)
@@ -721,6 +769,7 @@ function LunaUF:LoadOptions()
 	local page = 1
 	SetDropDownValue(LunaOptionsFrame.pages[page].FontSelect,LunaUF.db.profile.font)
 	SetDropDownValue(LunaOptionsFrame.pages[page].TextureSelect,LunaUF.db.profile.texture)
+	LunaOptionsFrame.pages[page].stretch:SetChecked(LunaUF.db.profile.stretchtex)
 	SetDropDownValue(LunaOptionsFrame.pages[page].AuraBorderSelect,LunaUF.db.profile.auraborderType)
 	LunaOptionsFrame.pages[page].enableTTips:SetChecked(LunaUF.db.profile.tooltips)
 	LunaOptionsFrame.pages[page].enableTTipscombat:SetChecked(LunaUF.db.profile.tooltipCombat)
@@ -1089,12 +1138,24 @@ function LunaUF:CreateOptionsMenu()
 		end
 	end)
 
+	LunaOptionsFrame.pages[page].stretch = CreateFrame("CheckButton", "EnableStretch", LunaOptionsFrame.pages[page], "UICheckButtonTemplate")
+	LunaOptionsFrame.pages[page].stretch:SetPoint("TOPLEFT", LunaOptionsFrame.pages[page], "TOPLEFT", 120, -145)
+	LunaOptionsFrame.pages[page].stretch:SetHeight(30)
+	LunaOptionsFrame.pages[page].stretch:SetWidth(30)
+	LunaOptionsFrame.pages[page].stretch:SetScript("OnClick", function()
+		LunaUF.db.profile.stretchtex = not LunaUF.db.profile.stretchtex
+		for _,frame in pairs(LunaUF.Units.frameList) do
+			LunaUF.Units:SetupFrameModules(frame)
+		end
+	end)
+	getglobal("EnableStretchText"):SetText(L["Stretch Textures"])
+
 	LunaOptionsFrame.pages[page].AuraDesc = LunaOptionsFrame.pages[page]:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-	LunaOptionsFrame.pages[page].AuraDesc:SetPoint("TOPLEFT", LunaOptionsFrame.pages[page], "TOPLEFT", 150, -130)
+	LunaOptionsFrame.pages[page].AuraDesc:SetPoint("TOPLEFT", LunaOptionsFrame.pages[page], "TOPLEFT", 250, -130)
 	LunaOptionsFrame.pages[page].AuraDesc:SetText(L["Aura Border"])
 
 	LunaOptionsFrame.pages[page].AuraBorderSelect = CreateFrame("Button", "AuraBorderSelector", LunaOptionsFrame.pages[page], "UIDropDownMenuTemplate")
-	LunaOptionsFrame.pages[page].AuraBorderSelect:SetPoint("TOPLEFT", LunaOptionsFrame.pages[page], "TOPLEFT", 130 , -145)
+	LunaOptionsFrame.pages[page].AuraBorderSelect:SetPoint("TOPLEFT", LunaOptionsFrame.pages[page], "TOPLEFT", 230 , -145)
 	UIDropDownMenu_SetWidth(80, LunaOptionsFrame.pages[page].AuraBorderSelect)
 	UIDropDownMenu_JustifyText("RIGHT", LunaOptionsFrame.pages[page].AuraBorderSelect)
 
@@ -1706,11 +1767,11 @@ function LunaUF:CreateOptionsMenu()
 		getglobal("Enable"..LunaUF.unitList[i-1].."CombatTextText"):SetText(L["Enable"])
 
 		LunaOptionsFrame.pages[i].ctextscaleslider = CreateFrame("Slider", "CtextScale"..LunaUF.unitList[i-1], LunaOptionsFrame.pages[i], "OptionsSliderTemplate")
-		LunaOptionsFrame.pages[i].ctextscaleslider:SetMinMaxValues(1,5)
-		LunaOptionsFrame.pages[i].ctextscaleslider:SetValueStep(0.1)
+		LunaOptionsFrame.pages[i].ctextscaleslider:SetMinMaxValues(0.1,2)
+		LunaOptionsFrame.pages[i].ctextscaleslider:SetValueStep(0.01)
 		LunaOptionsFrame.pages[i].ctextscaleslider:SetScript("OnValueChanged", function()
 			local unit = this:GetParent().id
-			LunaUF.db.profile.units[unit].combatText.size = math.floor(this:GetValue()*10)/10
+			LunaUF.db.profile.units[unit].combatText.size = math.floor(this:GetValue()*100)/100
 			getglobal("CtextScale"..unit.."Text"):SetText(L["Size"]..": "..LunaUF.db.profile.units[unit].combatText.size)
 			for _,frame in pairs(LunaUF.Units.frameList) do
 				if frame.unitGroup == unit then
@@ -2068,6 +2129,21 @@ function LunaUF:CreateOptionsMenu()
 		end)
 		getglobal("Vertical"..LunaUF.unitList[i-1].."Health".."Text"):SetText(L["Vertical"])
 
+		LunaOptionsFrame.pages[i].reverseHealth = CreateFrame("CheckButton", "Reverse"..LunaUF.unitList[i-1].."Health", LunaOptionsFrame.pages[i], "UICheckButtonTemplate")
+		LunaOptionsFrame.pages[i].reverseHealth:SetPoint("TOPLEFT", LunaOptionsFrame.pages[i].healthheader, "BOTTOMLEFT", 180, -50)
+		LunaOptionsFrame.pages[i].reverseHealth:SetHeight(30)
+		LunaOptionsFrame.pages[i].reverseHealth:SetWidth(30)
+		LunaOptionsFrame.pages[i].reverseHealth:SetScript("OnClick", function()
+			local unit = this:GetParent().id
+			LunaUF.db.profile.units[unit].healthBar.reverse = not LunaUF.db.profile.units[unit].healthBar.reverse
+			for _,frame in pairs(LunaUF.Units.frameList) do
+				if frame.unitGroup == unit then
+					LunaUF.Units.FullUpdate(frame)
+				end
+			end
+		end)
+		getglobal("Reverse"..LunaUF.unitList[i-1].."Health".."Text"):SetText(L["Reverse"])
+
 		LunaOptionsFrame.pages[i].powerheader = LunaOptionsFrame.pages[i]:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 		LunaOptionsFrame.pages[i].powerheader:SetPoint("TOPLEFT", LunaOptionsFrame.pages[i].healthheader, "BOTTOMLEFT", 0, -100)
 		LunaOptionsFrame.pages[i].powerheader:SetHeight(24)
@@ -2150,9 +2226,24 @@ function LunaUF:CreateOptionsMenu()
 			end
 		end)
 		getglobal("Vertical"..LunaUF.unitList[i-1].."PowerText"):SetText(L["Vertical"])
+		
+		LunaOptionsFrame.pages[i].reversePower = CreateFrame("CheckButton", "Reverse"..LunaUF.unitList[i-1].."Power", LunaOptionsFrame.pages[i], "UICheckButtonTemplate")
+		LunaOptionsFrame.pages[i].reversePower:SetPoint("TOPLEFT", LunaOptionsFrame.pages[i].powerheader, "BOTTOMLEFT", 0, -90)
+		LunaOptionsFrame.pages[i].reversePower:SetHeight(30)
+		LunaOptionsFrame.pages[i].reversePower:SetWidth(30)
+		LunaOptionsFrame.pages[i].reversePower:SetScript("OnClick", function()
+			local unit = this:GetParent().id
+			LunaUF.db.profile.units[unit].powerBar.reverse = not LunaUF.db.profile.units[unit].powerBar.reverse
+			for _,frame in pairs(LunaUF.Units.frameList) do
+				if frame.unitGroup == unit then
+					LunaUF.Units.FullUpdate(frame)
+				end
+			end
+		end)
+		getglobal("Reverse"..LunaUF.unitList[i-1].."Power".."Text"):SetText(L["Reverse"])
 
 		LunaOptionsFrame.pages[i].emptyheader = LunaOptionsFrame.pages[i]:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-		LunaOptionsFrame.pages[i].emptyheader:SetPoint("TOPLEFT", LunaOptionsFrame.pages[i].powerheader, "BOTTOMLEFT", 0, -100)
+		LunaOptionsFrame.pages[i].emptyheader:SetPoint("TOPLEFT", LunaOptionsFrame.pages[i].powerheader, "BOTTOMLEFT", 0, -140)
 		LunaOptionsFrame.pages[i].emptyheader:SetHeight(24)
 		LunaOptionsFrame.pages[i].emptyheader:SetJustifyH("LEFT")
 		LunaOptionsFrame.pages[i].emptyheader:SetTextColor(1,1,0)
@@ -2255,6 +2346,21 @@ function LunaUF:CreateOptionsMenu()
 			end
 		end)
 		getglobal("Cast"..LunaUF.unitList[i-1].."VerticalText"):SetText(L["Vertical"])
+		
+		LunaOptionsFrame.pages[i].reverseCast = CreateFrame("CheckButton", "Reverse"..LunaUF.unitList[i-1].."Cast", LunaOptionsFrame.pages[i], "UICheckButtonTemplate")
+		LunaOptionsFrame.pages[i].reverseCast:SetPoint("TOPLEFT", LunaOptionsFrame.pages[i].castheader, "BOTTOMLEFT", 170, -50)
+		LunaOptionsFrame.pages[i].reverseCast:SetHeight(30)
+		LunaOptionsFrame.pages[i].reverseCast:SetWidth(30)
+		LunaOptionsFrame.pages[i].reverseCast:SetScript("OnClick", function()
+			local unit = this:GetParent().id
+			LunaUF.db.profile.units[unit].castBar.reverse = not LunaUF.db.profile.units[unit].castBar.reverse
+			for _,frame in pairs(LunaUF.Units.frameList) do
+				if frame.unitGroup == unit then
+					LunaUF.Units.FullUpdate(frame)
+				end
+			end
+		end)
+		getglobal("Reverse"..LunaUF.unitList[i-1].."Cast".."Text"):SetText(L["Reverse"])
 
 		LunaOptionsFrame.pages[i].castsizeslider = CreateFrame("Slider", "CastSizeSlider"..LunaUF.unitList[i-1], LunaOptionsFrame.pages[i], "OptionsSliderTemplate")
 		LunaOptionsFrame.pages[i].castsizeslider:SetMinMaxValues(1,10)
@@ -2500,8 +2606,24 @@ function LunaUF:CreateOptionsMenu()
 		end)
 		getglobal("Enable"..LunaUF.unitList[i-1].."BorderColorText"):SetText(L["Enable Border Color"])
 		
+		LunaOptionsFrame.pages[i].aurapaddingslider = CreateFrame("Slider", "AuraPaddingSlider"..LunaUF.unitList[i-1], LunaOptionsFrame.pages[i], "OptionsSliderTemplate")
+		LunaOptionsFrame.pages[i].aurapaddingslider:SetMinMaxValues(0,10)
+		LunaOptionsFrame.pages[i].aurapaddingslider:SetValueStep(1)
+		LunaOptionsFrame.pages[i].aurapaddingslider:SetScript("OnValueChanged", function()
+			local unit = this:GetParent().id
+			LunaUF.db.profile.units[unit].auras.padding = math.floor(this:GetValue())
+			getglobal("AuraPaddingSlider"..unit.."Text"):SetText(L["Padding"]..": "..LunaUF.db.profile.units[unit].auras.padding)
+			for _,frame in pairs(LunaUF.Units.frameList) do
+				if frame.unitGroup == unit then
+					LunaUF.Units.FullUpdate(frame)
+				end
+			end
+		end)
+		LunaOptionsFrame.pages[i].aurapaddingslider:SetPoint("LEFT", LunaOptionsFrame.pages[i].enablebordercolor, "RIGHT", 190, 0)
+		LunaOptionsFrame.pages[i].aurapaddingslider:SetWidth(120)
+		
 		LunaOptionsFrame.pages[i].EmphasizeDesc = LunaOptionsFrame.pages[i]:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-		LunaOptionsFrame.pages[i].EmphasizeDesc:SetPoint("TOPLEFT", LunaOptionsFrame.pages[i].enablebordercolor, "BOTTOMLEFT", 200, 0)
+		LunaOptionsFrame.pages[i].EmphasizeDesc:SetPoint("TOPLEFT", LunaOptionsFrame.pages[i].enablebordercolor, "BOTTOMLEFT", 200, -20)
 		LunaOptionsFrame.pages[i].EmphasizeDesc:SetText(L["Emphasize"])
 		
 		LunaOptionsFrame.pages[i].EmphasizeBuffsInput = CreateFrame("Editbox", "EmphasizeBuffsInput"..i, LunaOptionsFrame.pages[i], "InputBoxTemplate")
@@ -3230,6 +3352,20 @@ function LunaUF:CreateOptionsMenu()
 		LunaUF.Units:LoadGroupHeader("party")
 	end)
 	getglobal("EnablePlayerpartyText"):SetText(L["Player in party"])
+
+	LunaOptionsFrame.pages[page].auratracker = CreateFrame("CheckButton", "EnablePartyAuratracker", LunaOptionsFrame.pages[page], "UICheckButtonTemplate")
+	LunaOptionsFrame.pages[page].auratracker:SetPoint("LEFT", LunaOptionsFrame.pages[page].playerparty, "RIGHT", 120, 0)
+	LunaOptionsFrame.pages[page].auratracker:SetHeight(30)
+	LunaOptionsFrame.pages[page].auratracker:SetWidth(30)
+	LunaOptionsFrame.pages[page].auratracker:SetScript("OnClick", function()
+		LunaUF.db.profile.units.party.squares.enabled = not LunaUF.db.profile.units.party.squares.enabled
+		for _,frame in pairs(LunaUF.Units.frameList) do
+			if frame.unitGroup == "party" then
+				LunaUF.Units:SetupFrameModules(frame)
+			end
+		end
+	end)
+	getglobal("EnablePartyAuratrackerText"):SetText(L["Auratracker"])
 
 	LunaOptionsFrame.pages[page].partypadding = CreateFrame("Slider", "PartyPaddingSlider", LunaOptionsFrame.pages[page], "OptionsSliderTemplate")
 	LunaOptionsFrame.pages[page].partypadding:SetMinMaxValues(1,100)
@@ -4402,11 +4538,11 @@ function LunaUF:CreateOptionsMenu()
 			LunaOptionsFrame.helpframescrollchild.texts[count]:SetText("\124cffffff00".."["..k.."]\124cffffffff: "..v)
 			LunaOptionsFrame.helpframescrollchild.texts[count]:SetJustifyH("LEFT")
 			LunaOptionsFrame.helpframescrollchild.texts[count]:SetJustifyV("TOP")
-			if LunaOptionsFrame.helpframescrollchild.texts[count]:GetStringWidth() > 281 then
-				LunaOptionsFrame.helpframescrollchild.texts[count]:SetHeight(22)
-			else
-				LunaOptionsFrame.helpframescrollchild.texts[count]:SetHeight(11)
-			end
+-- 			if LunaOptionsFrame.helpframescrollchild.texts[count]:GetStringWidth() > 281 then
+-- 				LunaOptionsFrame.helpframescrollchild.texts[count]:SetHeight(22)
+-- 			else
+-- 				LunaOptionsFrame.helpframescrollchild.texts[count]:SetHeight(11)
+-- 			end
 			LunaOptionsFrame.helpframescrollchild.texts[count]:SetWidth(280)
 			if not first then
 				LunaOptionsFrame.helpframescrollchild.texts[count]:SetPoint("TOP", prevframe, "BOTTOM")

@@ -206,24 +206,26 @@ function Health:Update(frame)
 end
 
 function Health:FullUpdate(frame)
+	local tags = LunaUF.db.profile.units[frame.unitGroup].tags.bartags.healthBar
 	if LunaUF.db.profile.units[frame.unitGroup].healthBar.vertical then
 		frame.healthBar:SetOrientation("VERTICAL")
 	else
 		frame.healthBar:SetOrientation("HORIZONTAL")
 	end
+	frame.healthBar:SetReverse(LunaUF.db.profile.units[frame.unitGroup].healthBar.reverse)
 	for align,fontstring in pairs(frame.fontstrings["healthBar"]) do
-		fontstring:SetFont("Interface\\AddOns\\LunaUnitFrames\\media\\fonts\\"..LunaUF.db.profile.font..".ttf", LunaUF.db.profile.units[frame.unitGroup].tags.bartags["healthBar"].size)
+		fontstring:SetFont("Interface\\AddOns\\LunaUnitFrames\\media\\fonts\\"..LunaUF.db.profile.font..".ttf", tags.size)
 		fontstring:ClearAllPoints()
 		fontstring:SetHeight(frame.healthBar:GetHeight())
 		if align == "left" then
 			fontstring:SetPoint("TOPLEFT", frame.healthBar, "TOPLEFT", 2, 0)
-			fontstring:SetWidth(frame.healthBar:GetWidth()-4)
+			fontstring:SetWidth((frame.healthBar:GetWidth()-4)*(tags.leftsize/100))
 		elseif align == "center" then
 			fontstring:SetAllPoints(frame.healthBar)
-			fontstring:SetWidth(frame.healthBar:GetWidth())
+			fontstring:SetWidth(frame.healthBar:GetWidth()*(tags.middlesize/100))
 		else
 			fontstring:SetPoint("TOPRIGHT", frame.healthBar, "TOPRIGHT", -2 , 0)
-			fontstring:SetWidth(frame.healthBar:GetWidth()-4)
+			fontstring:SetWidth((frame.healthBar:GetWidth()-4)*(tags.rightsize/100))
 		end
 	end
 	Health:Update(frame)
@@ -234,5 +236,6 @@ function Health:SetBarTexture(frame,texture)
 	if frame.healthBar then
 		frame.healthBar:SetStatusBarTexture(texture)
 		frame.healthBar.background:SetTexture(texture)
+		frame.healthBar:SetStretchTexture(LunaUF.db.profile.stretchtex)
 	end
 end

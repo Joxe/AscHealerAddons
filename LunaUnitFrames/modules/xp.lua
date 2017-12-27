@@ -1,5 +1,6 @@
 local XP = {}
 local L = LunaUF.L
+local ttshown
 LunaUF:RegisterModule(XP, "xpBar", L["XP/Rep bar"], true)
 
 local function OnEvent()
@@ -7,6 +8,7 @@ local function OnEvent()
 end
 
 local function OnEnter()
+	ttshown = true
 	if( this.tooltip ) then
 		GameTooltip:SetOwner(this, "ANCHOR_CURSOR")
 		GameTooltip:SetText(this.tooltip)
@@ -14,6 +16,7 @@ local function OnEnter()
 end
 
 local function OnLeave()
+	ttshown = nil
 	GameTooltip:Hide()
 end
 
@@ -100,6 +103,9 @@ function XP:UpdateRep(frame)
 	frame.xpBar.rep:SetStatusBarColor(color.r, color.g, color.b, LunaUF.db.profile.bars.alpha)
 	frame.xpBar.rep.background:SetVertexColor(color.r, color.g, color.b, LunaUF.db.profile.bars.backgroundAlpha)
 	frame.xpBar.rep:Show()
+	if frame == GameTooltip.owner then
+		GameTooltip:SetText(frame.xpBar.rep.tooltip)
+	end
 end
 
 function XP:UpdateXP(frame)
@@ -129,6 +135,9 @@ function XP:UpdateXP(frame)
 	else
 		frame.xpBar.rested:Hide()
 		frame.xpBar.xp.tooltip = string.format(L["Level"].." %s - %s: %s/%s (%.2f%% "..L["done"]..")", UnitLevel(frame.unit), UnitLevel(frame.unit) + 1, formatNumber(current), formatNumber(max), (current / max) * 100)
+	end
+	if ttshown then
+		GameTooltip:SetText(frame.xpBar.xp.tooltip)
 	end
 end
 
