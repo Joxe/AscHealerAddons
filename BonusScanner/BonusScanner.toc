@@ -7,3 +7,8 @@
 ## OptionalDeps: 
 ## Dependencies: 
 BonusScanner.xml
+HealComm.lua
+RosterLib-2.0.lua
+AceEvent-2.0.lua
+AceLibrary.lua
+

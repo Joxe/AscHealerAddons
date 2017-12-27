@@ -4,6 +4,12 @@
 	<Script file="Localization.DE.lua"/>
 	<Script file="Localization.FR.lua"/>
 	<Script file="BonusScanner.lua"/>
+	<Script file="AceLibrary.lua"/>
+	<Script file="AceEvent-2.0.lua"/>
+	<Script file="RosterLib-2.0.lua"/>
+	<Script file="HealComm.lua"/>
+
+
 
 	<Frame name="BonusScannerFrame" parent="UIParent" hidden="false">
 		<Scripts>
